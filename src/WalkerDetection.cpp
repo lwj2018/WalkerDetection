@@ -14,6 +14,10 @@ WalkerDetection::~WalkerDetection()
 
 void WalkerDetection::Init(Mat src)
 {
+    /****************************************************************************************
+     * 输入：包含行人的图片
+     * 初始化包围行人的矩形框 walkerRect 和行人特征 features 
+     ****************************************************************************************/ 
     HOGDescriptor hog;
     hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());//得到检测器  
     src.copyTo(walkerImg);   //拷贝，防止破坏原始数据
@@ -72,20 +76,28 @@ void WalkerDetection::Init(Mat src)
 
 void WalkerDetection::Detect(Mat src)
 {
+    /****************************************************************************************
+     * 输入：包含行人的图片
+     * 更新成员变量 walkerRect 和 features 
+     ****************************************************************************************/
     HOGDescriptor hog;
     hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());//得到检测器  
     src.copyTo(walkerImg);   //拷贝，防止破坏原始数据
 
     /*******************************************根据上次的检测结果在可能区域内检测行人*********************************/
     Rect possibleRect;
-    float scale = 10; //决定搜索范围的参数，需要调整
+    float scale = 2; //决定搜索范围的参数，需要调整
     float center_x = walkerRect.x + walkerRect.width/2.0;
     float center_y = walkerRect.y + walkerRect.height/2.0;
-    possibleRect.x = (center_x - walkerRect.width)>0?(walkerRect.x - walkerRect.width):0;
-    possibleRect.y = (walkerRect.y - walkerRect.height)>0?(walkerRect.y - walkerRect.height):0;
+    #ifdef DEBUG
+       circle(walkerImg,Point(center_x,center_y),2,Scalar(0,255,0),-1); 
+    #endif
+    possibleRect.x = (center_x - scale*walkerRect.width/2.0)>0?(center_x - scale*walkerRect.width/2.0):0;
+    possibleRect.y = (center_y - scale*walkerRect.height/2.0)>0?(center_y - scale*walkerRect.height/2.0):0;
     possibleRect.width = (scale*walkerRect.width+possibleRect.x)<walkerImg.cols?scale*walkerRect.width:walkerRect.width;
     possibleRect.height = (scale*walkerRect.height+possibleRect.y)<walkerImg.rows?scale*walkerRect.height:walkerRect.height;
     Mat possibleArea = walkerImg(possibleRect);
+    rectangle(walkerImg, possibleRect.tl(), possibleRect.br(), cv::Scalar(0, 0, 255), 3);
     //Mat possibleArea; walkerImg.copyTo(possibleArea);
     vector<Rect> found, found_filtered;
     double t = (double)getTickCount();
@@ -129,12 +141,16 @@ void WalkerDetection::Detect(Mat src)
         vector<float>().swap(tempFeatures); // 释放内存空间
     }
     features.assign(featuresTab[minIndex].begin(),featuresTab[minIndex].end());// 更新特征向量
-    walkerRect = found_filtered[minIndex];// 更新行人box
-    rectangle(possibleArea, walkerRect.tl(), walkerRect.br(), cv::Scalar(0, 255, 0), 3);
+    // 更新行人box,恢复到原图的坐标下
+    walkerRect.x = possibleRect.x+found_filtered[minIndex].x;
+    walkerRect.y = possibleRect.y+found_filtered[minIndex].y;
+    walkerRect.width = found_filtered[minIndex].width;
+    walkerRect.height = found_filtered[minIndex].height;
+    rectangle(walkerImg, walkerRect.tl(), walkerRect.br(), cv::Scalar(0, 255, 0), 3);
 
     #ifdef DEBUG
         namedWindow("people detector", 1);
-        imshow("people detector", possibleArea);
+        imshow("people detector", walkerImg);
         waitKey(0);
     #endif
 }
