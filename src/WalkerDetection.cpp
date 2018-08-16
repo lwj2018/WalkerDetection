@@ -94,8 +94,8 @@ void WalkerDetection::Detect(Mat src)
     #endif
     possibleRect.x = (center_x - scale*walkerRect.width/2.0)>0?(center_x - scale*walkerRect.width/2.0):0;
     possibleRect.y = (center_y - scale*walkerRect.height/2.0)>0?(center_y - scale*walkerRect.height/2.0):0;
-    possibleRect.width = (scale*walkerRect.width+possibleRect.x)<walkerImg.cols?scale*walkerRect.width:walkerRect.width;
-    possibleRect.height = (scale*walkerRect.height+possibleRect.y)<walkerImg.rows?scale*walkerRect.height:walkerRect.height;
+    possibleRect.width = (scale*walkerRect.width+possibleRect.x)<walkerImg.cols?scale*walkerRect.width:center_x+walkerRect.width/2.0-possibleRect.x;
+    possibleRect.height = (scale*walkerRect.height+possibleRect.y)<walkerImg.rows?scale*walkerRect.height:center_y+walkerRect.height/2.0-possibleRect.y;
     Mat possibleArea = walkerImg(possibleRect);
     rectangle(walkerImg, possibleRect.tl(), possibleRect.br(), cv::Scalar(0, 0, 255), 3);
     //Mat possibleArea; walkerImg.copyTo(possibleArea);
@@ -108,6 +108,11 @@ void WalkerDetection::Detect(Mat src)
     t = (double)getTickCount() - t;
     printf("tdetection time = %gms\n", t*1000. / cv::getTickFrequency());
     size_t i, j;
+    if (found.size() == 0)
+    {
+        cout<<"can not find walker"<<endl;
+        return;
+    }
     for (i = 0; i < found.size(); i++)
     {
         Rect r = found[i];
